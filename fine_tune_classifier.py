@@ -1,7 +1,7 @@
 import torch
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
-from transformers import AutoModel, AutoConfig, AutoTokenizer, AdamW
+from transformers import AutoModel, AutoConfig, AutoTokenizer, AdamW, DataCollatorWithPadding
 
 from custom_dataset import IMDbDataset
 from model import HuggingFaceCustomClassifier
@@ -23,9 +23,11 @@ tokenizer = AutoTokenizer.from_pretrained(HUGGINGFACE_MODEL_NAME)
 config = AutoConfig.from_pretrained(HUGGINGFACE_MODEL_NAME)
 
 # tokenize files first, the tokenizer creates attention masks as well
-train_encodings = tokenizer(train_texts, truncation=True, padding=True, max_length=16)
-val_encodings = tokenizer(val_texts, truncation=True, padding=True, max_length=16)
-test_encodings = tokenizer(test_texts, truncation=True, padding=True, max_length=16)
+train_encodings = tokenizer(train_texts, truncation=True)
+val_encodings = tokenizer(val_texts, truncation=True)
+test_encodings = tokenizer(test_texts, truncation=True)
+
+collator = DataCollatorWithPadding(tokenizer)
 
 # load text into datasets
 train_dataset = IMDbDataset(train_encodings, train_labels)
@@ -42,7 +44,7 @@ device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cp
 model.to(device)
 model.train()
 
-train_loader = DataLoader(train_dataset, batch_size=2, shuffle=True)
+train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True, collate_fn=collator)
 # test set size to make sure it runs correctly
 
 
